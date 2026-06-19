@@ -8,6 +8,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Scope & distribution change
+
+- **Bazzite-only.** Removed Arch/CachyOS, SteamOS, and Debian/Ubuntu support to
+  focus on a single platform that can be built, tested, and shipped reliably.
+  Dropped the `install_pacman_pkg`/`install_aur_pkg`/`install_apt_pkg` commands
+  and trimmed each app's `installMethods`/`osSupport` to `fedora-atomic` + `any`.
+- **Ships as a Flatpak.** Replaced the AppImage build with a Flatpak built against
+  the GNOME runtime, which provides a matched WebKitGTK — fixing the
+  `EGL_BAD_PARAMETER` and Skia font crashes seen with the AppImage on Bazzite's
+  bleeding-edge Mesa stack.
+- **Host command routing.** Added `host_command()` which prepends
+  `flatpak-spawn --host` inside the sandbox, so the app can still run host
+  commands (flatpak, systemctl, nmcli, pkexec, ujust, rpm-ostree, podman).
+- **CI.** `nightly.yml` (AppImage) replaced by `flatpak.yml`, which publishes a
+  rolling `nightly` `.flatpak` release on every push to `main`. Added
+  `dep-update.yml` for weekly n-1 dependency updates with a supply-chain audit.
+
 ### Initial release — features shipped
 
 **App installer**

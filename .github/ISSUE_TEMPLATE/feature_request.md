@@ -20,9 +20,8 @@ If yes, please provide:
 
 - **App name:**
 - **What it does (one sentence):**
-- **Install method:** (Flatpak ID / AUR package / pacman package / AppImage URL)
+- **Install method on Bazzite:** (Flatpak ID / ujust recipe / rpm-ostree package)
 - **GitHub repo (for version checks):**
-- **OS support:** (which distro families does it work on?)
 - **GPU notes:** (any GPU-specific behaviour?)
 
 ## Is this a script improvement?

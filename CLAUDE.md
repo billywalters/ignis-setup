@@ -7,10 +7,13 @@ It gives you the full context you need to work on this project effectively.
 
 ## What this project is
 
-**Ignis** is a native Linux desktop application (Tauri 2 + React) that
-automates the setup and configuration of a Linux gaming and media PC. It detects
-the user's OS, GPU, and hardware at runtime and installs apps using the correct
-package manager for their distro.
+**Ignis** is a native desktop application (Tauri 2 + React) that automates the
+setup and configuration of a **Bazzite** gaming and media PC. It detects the
+user's GPU and hardware at runtime and installs apps using the right method for
+Bazzite (`ujust`, `rpm-ostree`, or user Flatpak).
+
+**Scope:** Bazzite (Fedora Atomic) only. Arch/SteamOS/Debian support was
+removed. The app ships as a **Flatpak**.
 
 **GitHub:** https://github.com/billywalters/ignis-setup  
 **Owner:** @billywalters  
@@ -27,10 +30,9 @@ npm run tauri dev
 # Build frontend only (Vite)
 npm run build
 
-# Build the full native app (AppImage + .deb + .rpm)
-npm run tauri build
-# or use the helper script:
-bash build.sh
+# Build the Flatpak (the shipping format for Bazzite)
+flatpak-builder --user --install --force-clean build-dir \
+  flatpak/io.github.billywalters.ignis-setup.yml
 
 # Check shell script syntax
 bash -n scripts/<scriptname>.sh
@@ -90,11 +92,12 @@ ignis-setup/
 │   └── src/
 │       ├── lib.rs                  Thin orchestrator: mod declarations + invoke handler
 │       ├── main.rs                 Binary entry point (one line)
-│       ├── types.rs                CommandResult, run_cmd, run_sudo_cmd, dirs_home
+│       ├── types.rs                CommandResult, run_cmd, run_sudo_cmd, host_command, dirs_home
 │       ├── system.rs               OS detection + get_system_info command
-│       ├── installs.rs             install_flatpak, run_ujust, install_pacman, etc.
+│       ├── installs.rs             install_flatpak, run_ujust, install_rpm_ostree, scripts
 │       ├── network.rs              nmcli, NAS mount, fstab, ping
 │       ├── jellyfin.rs             Podman Quadlet install + service control
+│       ├── cloudflare.rs           Cloudflare Tunnel for remote Jellyfin access
 │       ├── ge_proton.rs            GE-Proton status, install, set Steam default
 │       └── install_log.rs          Persistent install log at ~/.local/share/ignis-setup/
 │
@@ -124,13 +127,15 @@ ignis-setup/
 │
 ├── handbrake-presets/              HandBrake SVT-AV1 preset JSON files (RF 16, copy audio)
 │
+├── flatpak/                       Flatpak manifest, desktop entry, AppStream metainfo
+│
 └── .github/
     ├── workflows/
     │   ├── ci.yml                  PR checks: shellcheck + Vite build + cargo check
-    │   ├── nightly.yml             AppImage build on every merge to main (7-day artifact)
-    │   ├── release.yml             Full build + GitHub Release on version tag push
-    │   └── dependency-review.yml   CVE scan for new dependencies in PRs
-    ├── ISSUE_TEMPLATE/             Bug report, feature request, OS compat report
+    │   ├── flatpak.yml             Flatpak build on every push to main → rolling nightly release
+    │   ├── dependency-review.yml   CVE scan for new dependencies in PRs
+    │   └── dep-update.yml          Weekly n-1 dependency update PR + supply-chain audit
+    ├── ISSUE_TEMPLATE/             Bug report, feature request
     ├── pull_request_template.md    PR checklist
     ├── CODEOWNERS                  @billywalters on all paths
     └── dependabot.yml              Weekly updates for npm, Cargo, Actions
@@ -158,34 +163,32 @@ React component
 
 ---
 
-## OS families
+## OS detection
 
-The app detects one of these OS families at startup:
+The app targets Bazzite only. `system.rs` resolves the OS family to one of:
 
 | Family | Distros | Package manager | Notes |
 |--------|---------|-----------------|-------|
-| `fedora-atomic` | Bazzite, Silverblue, Kinoite | `rpm-ostree` | System installs require reboot |
-| `arch` | CachyOS, Arch, EndeavourOS | `pacman` + `paru`/`yay` (AUR) | Installs immediate |
-| `steamos` | SteamOS 3, HoloISO | `flatpak-only` | System installs wiped on OS update |
-| `debian` | Ubuntu, Debian, Pop!_OS | `apt` | Standard |
-| `unknown` | Anything else | Flatpak fallback | Best-effort |
+| `fedora-atomic` | Bazzite, Silverblue, Kinoite, and any `ostree-booted` Fedora | `rpm-ostree` | System installs require reboot |
+| `unknown` | Anything else | — | Welcome screen warns; unsupported |
 
-The OS family drives which `installMethods` entry is used per app in `apps.js`.
+The OS family drives which `installMethods` entry is used per app in `apps.js`
+(`fedora-atomic`, falling back to `any`).
 
 ---
 
 ## Adding a new app — checklist
 
 1. **`src/lib/apps.js`** — add an entry with:
-   - `installMethods` — at minimum an `"any"` key; add per-family overrides as needed
-   - `osSupport` — one entry per family with `level` (`full`/`partial`/`unavailable`) and `note`
+   - `installMethods` — at minimum an `"any"` key; add a `"fedora-atomic"` override
+     when Bazzite has a better path (e.g. a `ujust` recipe or `rpm-ostree`)
+   - `osSupport` — a `fedora-atomic` entry with `level` (`full`/`partial`/`unavailable`) and `note`
    - `gpuSupport` — only needed if GPU vendor affects functionality
    - `checkFlatpakId` — set this instead of (or alongside) `checkCmd` when the app is
      installed as a Flatpak and doesn't put a binary in PATH. Used by `checkStatuses()`
      to correctly detect installed state. Without it, Flatpak apps always show "Not installed".
-   - `preinstalled: true` only when the app is pre-installed on ALL supported OS families.
-     For OS-specific pre-installs (e.g. MangoHud on Bazzite/SteamOS but not Arch/Ubuntu),
-     use `method: "preinstalled"` in the specific `installMethods` entry instead.
+   - `preinstalled: true` only when the app is pre-installed on Bazzite (e.g. MangoHud);
+     pair it with `method: "preinstalled"` in the `fedora-atomic` install entry.
 2. **`scripts/setup-<name>.sh`** (optional) — if the install needs custom steps beyond a
    simple `pkg_install`. Start with:
    ```bash
@@ -250,6 +253,10 @@ Never hardcode hex colours except for `iconBg` values in `apps.js`.
 
 ## Release process
 
+Every push to `main` rebuilds the Flatpak via `flatpak.yml` and publishes it to
+the rolling `nightly` GitHub Release. That is the download users install. To cut
+a versioned snapshot:
+
 ```bash
 # 1. Update version in both files
 npm pkg set version="1.1.0"
@@ -257,27 +264,24 @@ sed -i 's/^version = ".*"/version = "1.1.0"/' src-tauri/Cargo.toml
 
 # 2. Update CHANGELOG.md — move Unreleased items under ## [1.1.0] - YYYY-MM-DD
 
-# 3. Commit, tag, push
+# 3. Commit and open a PR (no direct pushes to main)
+git checkout -b release-1.1.0
 git add -A && git commit -m "Release v1.1.0"
-git tag v1.1.0
-git push && git push --tags
-
-# GitHub Actions builds AppImage + .deb + .rpm and creates a draft release.
-# Review at: https://github.com/billywalters/ignis-setup/releases
-# Click Publish when ready.
+git push -u origin release-1.1.0
 ```
 
 ---
 
 ## Known constraints and things to be careful about
 
-- **Icons are placeholders** — `src-tauri/icons/` contains only a `.gitkeep`. The build will
-  fail until real PNG/ICO files are provided. See `src-tauri/icons/README.md`.
-- **AppImage build requires Ubuntu 22.04** — higher glibc versions break compatibility.
-  The CI workflows pin to `ubuntu-22.04` for this reason. Don't change the runner.
-- **SteamOS system installs are ephemeral** — anything installed outside `$HOME` on SteamOS
-  is wiped on OS update. Flatpak or home-directory installs survive. The code accounts for this
-  but be careful when adding new install methods for SteamOS.
+- **Flatpak sandbox** — the app ships as a Flatpak but configures the host. All host
+  commands go through `host_command()` in `types.rs`, which prepends `flatpak-spawn --host`
+  when running inside Flatpak (detected via `/.flatpak-info`). Any new command execution
+  MUST go through `run_cmd`/`run_sudo_cmd`/`host_command`, never a raw `Command::new`, or it
+  will run inside the sandbox instead of on the host.
+- **Sandbox `/tmp` is not the host `/tmp`** — `flatpak-spawn --host` can't see files the app
+  writes to its sandbox `/tmp`. Known affected: GE-Proton's temp-script and bundled-script
+  execution. Don't write a file in-sandbox and then run it via a host command.
 - **`rpm-ostree` installs require a reboot** — always call `check_reboot_pending` after,
   and handle the case where the user hasn't rebooted yet.
 - **GitHub API rate limit** — unauthenticated calls are limited to 60/hour. Always use
@@ -298,6 +302,6 @@ git push && git push --tags
 | What you do | What happens |
 |-------------|--------------|
 | Open a PR | CI runs: shellcheck + Vite build + cargo check + dependency review |
-| Merge to main | Nightly AppImage built and uploaded (7-day artifact) |
-| Push `v1.2.3` tag | Full AppImage + .deb + .rpm built, draft release created |
+| Merge to main | Flatpak built and published to the rolling `nightly` release |
+| Sunday | `dep-update.yml` opens an n-1 dependency update PR with a supply-chain audit |
 | Monday morning | Dependabot opens PRs for outdated npm/Cargo/Actions deps |
