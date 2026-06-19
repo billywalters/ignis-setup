@@ -1,0 +1,23 @@
+# CODEOWNERS
+# These owners are automatically requested for review on PRs
+# that touch the listed paths.
+#
+# Owner: @billywalters
+# Add additional owners as the project grows.
+#
+# Syntax: path    @owner1 @owner2
+
+# Default owner for everything
+*                           @billywalters
+
+# Rust backend — review carefully for security/privilege issues
+src-tauri/                  @billywalters
+
+# Setup scripts — review for OS compatibility and dry-run correctness
+scripts/                    @billywalters
+
+# CI/CD workflows — review before merging changes
+.github/workflows/          @billywalters
+
+# App catalogue — review for OS/GPU support accuracy
+src/lib/apps.js             @billywalters

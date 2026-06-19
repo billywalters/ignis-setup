@@ -1,0 +1,68 @@
+/* ============================================================
+   Ignis — design tokens
+   Brand: deep charcoal base, ember orange accent
+   ============================================================ */
+:root {
+  /* Base surfaces */
+  --bg:        #0d1014;   /* deep charcoal — darker than before for contrast */
+  --surface:   #161a22;   /* card/panel background */
+  --surface2:  #1c2030;   /* input / secondary background */
+  --border:    #252d40;   /* borders */
+
+  /* Brand — ember orange */
+  --accent:    #e05c2a;   /* primary CTA — ember orange */
+  --accent2:   #f07d4a;   /* hover / heading highlight */
+  --accent3:   #c0391a;   /* pressed / deep ember */
+
+  /* Semantic */
+  --green:     #3ddc84;   /* success / installed */
+  --yellow:    #f5c542;   /* warning / partial */
+  --red:       #ff5f5f;   /* error / unavailable */
+  --blue:      #4ea6f5;   /* info / version badge */
+  --purple:    #9b6cf7;   /* misc highlight */
+
+  /* Text */
+  --text:      #eaecf4;   /* primary text — slightly warmer white */
+  --muted:     #7a84a0;   /* secondary text */
+
+  /* Geometry */
+  --radius:    10px;
+  --mono:      'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background:  var(--bg);
+  color:       var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size:   14px;
+  user-select: none;
+  overflow:    hidden;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* Selection */
+::selection { background: rgba(224,92,42,.3); color: var(--text); }
+
+/* Utility classes */
+.muted  { color: var(--muted); }
+.green  { color: var(--green); }
+.yellow { color: var(--yellow); }
+.red    { color: var(--red); }
+.blue   { color: var(--blue); }
+.mono   { font-family: var(--mono); }
+
+/* Ignis logo mark used in topbar */
+.ignis-wordmark {
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: -.5px;
+}

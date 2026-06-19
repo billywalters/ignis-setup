@@ -1,0 +1,92 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Ignis",
+  "version": "1.0.0",
+  "identifier": "io.github.billywalters.ignis-setup",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Ignis",
+        "width": 1100,
+        "height": 780,
+        "minWidth": 900,
+        "minHeight": 640,
+        "resizable": true,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.github.com; font-src 'self';"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "appimage",
+      "rpm",
+      "deb"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0"
+        ]
+      }
+    },
+    "longDescription": "Ignis \u2014 Linux gaming setup tool. Installs and configures gaming, emulation, media, and streaming apps with automatic OS and GPU detection.",
+    "shortDescription": "Linux gaming setup tool",
+    "homepage": "https://github.com/billywalters/ignis-setup",
+    "category": "Utility"
+  },
+  "plugins": {
+    "shell": {
+      "open": true,
+      "scope": [
+        {
+          "name": "run_script",
+          "cmd": "bash",
+          "args": true,
+          "sidecar": false
+        },
+        {
+          "name": "nmcli",
+          "cmd": "nmcli",
+          "args": true,
+          "sidecar": false
+        },
+        {
+          "name": "flatpak",
+          "cmd": "flatpak",
+          "args": true,
+          "sidecar": false
+        },
+        {
+          "name": "systemctl",
+          "cmd": "systemctl",
+          "args": true,
+          "sidecar": false
+        },
+        {
+          "name": "pkexec",
+          "cmd": "pkexec",
+          "args": true,
+          "sidecar": false
+        }
+      ]
+    }
+  }
+}

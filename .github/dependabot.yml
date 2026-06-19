@@ -1,0 +1,54 @@
+# .github/dependabot.yml
+# Dependabot keeps dependencies up to date automatically.
+# It opens PRs when new versions of npm packages, Rust crates, and
+# GitHub Actions are available.
+#
+# Free for public repositories.
+
+version: 2
+
+updates:
+  # ── npm (frontend dependencies) ────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    # Group all non-major updates into a single PR to reduce noise
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    # Open major version bumps individually so they can be reviewed carefully
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # ── Cargo (Rust backend) ────────────────────────────────────────────────────
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    labels:
+      - "dependencies"
+      - "rust"
+
+  # ── GitHub Actions ──────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "ci"

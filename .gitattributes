@@ -1,0 +1,25 @@
+# Enforce LF line endings for all text files (Linux target)
+* text=auto eol=lf
+
+# Shell scripts must always be LF
+*.sh text eol=lf
+
+# Rust / JS / JSON / TOML
+*.rs text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binaries — no line-ending normalization
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary

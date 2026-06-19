@@ -1,0 +1,143 @@
+name: Release
+
+# Triggered by pushing a version tag: git tag v1.0.0 && git push --tags
+# Builds the AppImage, .deb, and .rpm, creates a GitHub Release draft,
+# and uploads all three as release assets.
+#
+# Users can download directly from the GitHub Releases page —
+# no manual build required.
+#
+# Free for public repositories (standard GitHub-hosted runners, unlimited minutes).
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"        # v1.0.0
+      - "v[0-9]+.[0-9]+.[0-9]+-*"       # v1.0.0-beta.1
+
+# Only one release can run at a time
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  # ── Build Linux artifacts ───────────────────────────────────────────────────
+  # Uses ubuntu-22.04 as the build base per Tauri's official recommendation:
+  # https://v2.tauri.app/distribute/appimage/
+  # Building on 22.04 keeps the minimum glibc version low enough to run on
+  # Bazzite, CachyOS, SteamOS, and Ubuntu 22.04+.
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write   # needed to create the GitHub Release and upload assets
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            file \
+            fuse
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # Sync the version in package.json and Cargo.toml with the tag
+      - name: Sync version to ${{ steps.version.outputs.VERSION }}
+        run: |
+          npm pkg set version="${{ steps.version.outputs.VERSION }}"
+          sed -i 's/^version = ".*"/version = "${{ steps.version.outputs.VERSION }}"/' \
+            src-tauri/Cargo.toml
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Creates a draft release — you can review and publish manually
+          # Change to false to publish immediately on tag push
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          releaseBody: |
+            ## Ignis ${{ github.ref_name }}
+
+            ### Installation
+
+            Download the right file for your system:
+
+            | File | Use for |
+            |------|---------|
+            | `ignis-setup_*.AppImage` | **Recommended** — runs on any Linux distro (Bazzite, CachyOS, SteamOS, Ubuntu) |
+            | `ignis-setup_*.deb` | Debian / Ubuntu permanent install |
+            | `ignis-setup_*.rpm` | Fedora / Bazzite permanent install |
+
+            #### AppImage (easiest)
+            ```bash
+            chmod +x ignis-setup_*.AppImage
+            ./ignis-setup_*.AppImage
+            ```
+
+            #### RPM (Bazzite / Fedora Atomic)
+            ```bash
+            rpm-ostree install ignis-setup_*.rpm
+            # reboot required
+            ```
+
+            #### DEB (Ubuntu / Debian)
+            ```bash
+            sudo dpkg -i ignis-setup_*.deb
+            ```
+
+            ---
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for what's new.
+
+      # Upload the built artifacts as workflow artifacts too
+      # (accessible even before the release is published)
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ignis-setup-appimage-${{ steps.version.outputs.VERSION }}
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
+          retention-days: 30
+
+      - name: Upload DEB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ignis-setup-deb-${{ steps.version.outputs.VERSION }}
+          path: src-tauri/target/release/bundle/deb/*.deb
+          retention-days: 30
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ignis-setup-rpm-${{ steps.version.outputs.VERSION }}
+          path: src-tauri/target/release/bundle/rpm/*.rpm
+          retention-days: 30

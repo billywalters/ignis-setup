@@ -1,0 +1,105 @@
+name: CI
+
+# Runs on every pull request and every push to main.
+# Does NOT produce release artifacts — just validates the code compiles
+# and the shell scripts are syntactically correct.
+#
+# Keeping CI fast and separate from release builds means contributors
+# get feedback in ~5 minutes instead of waiting for a full artifact build.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "CHANGELOG.md"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - ".github/ISSUE_TEMPLATE/**"
+
+# Cancel any in-progress run for the same branch/PR when a new commit is pushed
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. Shell script validation ──────────────────────────────────────────────
+  shellcheck:
+    name: Shell scripts
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Syntax check (bash -n)
+        run: |
+          for f in scripts/*.sh build.sh; do
+            echo "Checking $f"
+            bash -n "$f"
+          done
+
+      - name: Shellcheck lint
+        # SC2034 = unused variable (acceptable for sourced helpers)
+        # SC1091 = not following sourced file (acceptable — _common.sh is runtime-sourced)
+        run: |
+          shellcheck --severity=error \
+            --exclude=SC2034,SC1091 \
+            scripts/*.sh build.sh
+
+  # ── 2. Frontend type-check and lint ─────────────────────────────────────────
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build frontend (Vite)
+        run: npm run build
+
+  # ── 3. Rust compile check ────────────────────────────────────────────────────
+  rust:
+    name: Rust
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Cargo check (no full build)
+        working-directory: src-tauri
+        run: cargo check --release
+
+      - name: Clippy (warnings as errors)
+        working-directory: src-tauri
+        run: cargo clippy --release -- -D warnings
