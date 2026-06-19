@@ -2,6 +2,8 @@
 
 All notable changes to Ignis will be documented here.
 
+<!-- CI smoke test PR — verifying GitHub Actions pass after dependency updates -->
+
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
