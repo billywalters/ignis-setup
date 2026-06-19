@@ -1,10 +1,8 @@
 name: Nightly build
 
 # Runs on every merge to main (after CI passes).
-# Produces a downloadable AppImage from the latest main branch code
-# so contributors and testers can try the newest version without tagging a release.
-#
-# Artifacts are kept for 7 days (free storage; no permanent release created).
+# Produces a downloadable AppImage and publishes it as a rolling GitHub Release
+# under the "nightly" tag — always points to the latest build on main.
 # When you're ready for an official release, push a version tag instead.
 
 on:
@@ -26,6 +24,8 @@ jobs:
   build-nightly:
     name: Build nightly AppImage
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write   # needed to create/update the nightly release
 
     steps:
       - name: Checkout
@@ -44,7 +44,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          # Separate cache key from release builds so they don't interfere
           shared-key: nightly
 
       - name: Install Linux system dependencies
@@ -75,16 +74,45 @@ jobs:
       - name: Build Tauri app (AppImage only)
         run: npm run tauri build -- --bundles appimage
         env:
-          # Disable updater signature check for nightly builds
           TAURI_SIGNING_PRIVATE_KEY: ""
 
-      - name: Upload nightly AppImage
-        uses: actions/upload-artifact@v7
-        with:
-          name: ignis-setup-nightly-${{ github.sha }}
-          path: src-tauri/target/release/bundle/appimage/*.AppImage
-          # Short retention — nightlies are development snapshots, not releases
-          retention-days: 7
+      - name: Publish rolling nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APPIMAGE=$(ls src-tauri/target/release/bundle/appimage/*.AppImage | head -1)
+          FILENAME=$(basename "${APPIMAGE}")
+          SIZE=$(du -sh "${APPIMAGE}" | cut -f1)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+
+          # Delete old nightly release and tag so assets are always fresh
+          gh release delete nightly --yes 2>/dev/null || true
+          git push origin :refs/tags/nightly 2>/dev/null || true
+
+          gh release create nightly \
+            --prerelease \
+            --title "Nightly Build" \
+            --notes "## Ignis — Nightly Build
+
+> Automatically updated on every push to \`main\`. Not a stable release.
+
+**Built from** [\`${SHORT_SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})
+
+### Install on Bazzite / Linux
+
+\`\`\`bash
+chmod +x ${FILENAME}
+./${FILENAME}
+\`\`\`
+
+AppImage runs on any Linux distro without installation — no sudo, no rpm-ostree reboot required.
+
+| | |
+|---|---|
+| Commit | \`${SHORT_SHA}\` |
+| Size | ${SIZE} |
+| Built | $(date -u '+%Y-%m-%d %H:%M UTC') |" \
+            "${APPIMAGE}"
 
       - name: Post summary
         run: |
@@ -97,6 +125,5 @@ jobs:
           echo "| Commit | \`${GITHUB_SHA:0:7}\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| File | \`$(basename "${APPIMAGE}")\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Size | ${SIZE} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Expires | 7 days |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Download from the [Actions run artifacts](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})." >> "$GITHUB_STEP_SUMMARY"
+          echo "**Download:** [github.com/${GITHUB_REPOSITORY}/releases/tag/nightly](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/nightly)" >> "$GITHUB_STEP_SUMMARY"
