@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Ignis
+GenericName=Gaming Setup Tool
+Comment=Install and configure gaming, media, and streaming apps on Bazzite
+Exec=ignis-setup
+Icon=io.github.billywalters.ignis-setup
+Terminal=false
+Categories=Utility;System;Settings;
+Keywords=bazzite;gaming;setup;jellyfin;proton;
+StartupNotify=true

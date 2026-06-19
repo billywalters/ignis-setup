@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.billywalters.ignis-setup</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Ignis</name>
+  <summary>Gaming setup tool for Bazzite</summary>
+  <description>
+    <p>
+      Ignis installs and configures gaming, emulation, media, and streaming
+      apps on Bazzite, with automatic GPU detection and one-click setup for
+      GE-Proton, Jellyfin, OBS, and more.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.billywalters.ignis-setup.desktop</launchable>
+  <url type="homepage">https://github.com/billywalters/ignis-setup</url>
+  <url type="bugtracker">https://github.com/billywalters/ignis-setup/issues</url>
+  <developer id="io.github.billywalters">
+    <name>Billy Walters</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-06-19"/>
+  </releases>
+</component>

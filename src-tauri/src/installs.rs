@@ -1,6 +1,5 @@
 // src-tauri/src/installs.rs — app installation commands
-use std::process::Command;
-use crate::types::{CommandResult, run_cmd};
+use crate::types::{CommandResult, run_cmd, host_command};
 
 #[tauri::command]
 pub fn install_flatpak_app(app_id: String) -> CommandResult {
@@ -14,7 +13,7 @@ pub fn check_flatpak_installed(app_id: String) -> CommandResult {
 
 #[tauri::command]
 pub fn run_ujust(recipe: String) -> CommandResult {
-    if !Command::new("which").arg("ujust").output().map(|o| o.status.success()).unwrap_or(false) {
+    if !host_command("which").arg("ujust").output().map(|o| o.status.success()).unwrap_or(false) {
         return CommandResult::err("ujust is not available on this system. It is a Bazzite/uBlue-specific tool.".into());
     }
     run_cmd("ujust", &[&recipe])
@@ -27,9 +26,9 @@ pub fn install_pacman_pkg(pkg: String) -> CommandResult {
 
 #[tauri::command]
 pub fn install_aur_pkg(pkg: String) -> CommandResult {
-    if Command::new("which").arg("paru").output().map(|o| o.status.success()).unwrap_or(false) {
+    if host_command("which").arg("paru").output().map(|o| o.status.success()).unwrap_or(false) {
         run_cmd("paru", &["-S", "--noconfirm", "--needed", &pkg])
-    } else if Command::new("which").arg("yay").output().map(|o| o.status.success()).unwrap_or(false) {
+    } else if host_command("which").arg("yay").output().map(|o| o.status.success()).unwrap_or(false) {
         run_cmd("yay", &["-S", "--noconfirm", "--needed", &pkg])
     } else {
         CommandResult::err("No AUR helper found. Install paru first: sudo pacman -S paru".into())
@@ -61,5 +60,5 @@ pub fn run_bash_script_with_args(script_path: String, args: Vec<String>) -> Comm
 
 #[tauri::command]
 pub fn check_command_exists(cmd: String) -> bool {
-    Command::new("which").arg(&cmd).output().map(|o| o.status.success()).unwrap_or(false)
+    host_command("which").arg(&cmd).output().map(|o| o.status.success()).unwrap_or(false)
 }
