@@ -1,0 +1,58 @@
+# Flatpak manifest for Ignis (Bazzite target).
+#
+# The app is built INSIDE the GNOME SDK so its binary links against the same
+# WebKitGTK / GTK / glibc that the GNOME runtime ships — this is what
+# eliminates the host-vs-bundled library mismatches that broke the AppImage.
+#
+# Because Ignis configures the host (flatpak, systemctl, nmcli, pkexec,
+# ujust, rpm-ostree, podman), it needs to break out of the sandbox. The
+# --talk-name=org.freedesktop.Flatpak permission enables `flatpak-spawn
+# --host`, which the Rust backend uses for every command it runs.
+id: io.github.billywalters.ignis-setup
+runtime: org.gnome.Platform
+runtime-version: '47'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node20
+command: ignis-setup
+
+finish-args:
+  - --share=network
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Allows flatpak-spawn --host so the app can run host system commands.
+  # This is a deliberate sandbox hole: Ignis is a host-configuration tool.
+  - --talk-name=org.freedesktop.Flatpak
+
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/node20/bin
+  env:
+    CARGO_HOME: /run/build/ignis-setup/cargo
+  build-args:
+    # Cargo and npm need network access to fetch crates/packages. Acceptable
+    # for our own CI/local builds (not a Flathub-reproducible build).
+    - --share=network
+
+modules:
+  - name: ignis-setup
+    buildsystem: simple
+    build-commands:
+      # 1. Frontend → dist/ (Tauri embeds this into the binary at compile time)
+      - npm ci
+      - npm run build
+      # 2. Rust binary against the runtime's libraries
+      - cargo build --release --manifest-path src-tauri/Cargo.toml
+      # 3. Install binary, desktop entry, icon, and AppStream metadata
+      - install -Dm755 src-tauri/target/release/ignis-setup /app/bin/ignis-setup
+      - install -Dm644 flatpak/io.github.billywalters.ignis-setup.desktop
+          /app/share/applications/io.github.billywalters.ignis-setup.desktop
+      - install -Dm644 src-tauri/icons/128x128.png
+          /app/share/icons/hicolor/128x128/apps/io.github.billywalters.ignis-setup.png
+      - install -Dm644 flatpak/io.github.billywalters.ignis-setup.metainfo.xml
+          /app/share/metainfo/io.github.billywalters.ignis-setup.metainfo.xml
+    sources:
+      - type: dir
+        path: ..

@@ -1,0 +1,99 @@
+name: Flatpak build
+
+# Builds the Bazzite Flatpak on every push to main and publishes it as a
+# rolling GitHub Release under the "nightly" tag — always the latest build.
+# Download the single .flatpak file and install with:
+#     flatpak install --user ./ignis-setup.flatpak
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - ".github/ISSUE_TEMPLATE/**"
+  workflow_dispatch:
+
+concurrency:
+  group: flatpak
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Flatpak bundle
+    runs-on: ubuntu-22.04
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:gnome-47
+      options: --privileged
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: ignis-setup.flatpak
+          manifest-path: flatpak/io.github.billywalters.ignis-setup.yml
+          # Pull the GNOME runtime + rust-stable/node20 SDK extensions
+          install-deps-from: flathub
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: true
+
+  release:
+    name: Publish rolling nightly
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download Flatpak bundle
+        uses: actions/download-artifact@v7
+        with:
+          name: ignis-setup.flatpak
+          path: ./bundle
+
+      - name: Publish rolling nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BUNDLE=$(find ./bundle -name '*.flatpak' | head -1)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          BUILT=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          cat > /tmp/notes.md << EOF
+          ## Ignis — Nightly Flatpak (Bazzite)
+
+          Automatically rebuilt on every push to \`main\`. Not a stable release.
+
+          **Built from** [\`${SHORT_SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})
+
+          ### Install on Bazzite
+
+          \`\`\`bash
+          flatpak install --user ./ignis-setup.flatpak
+          flatpak run io.github.billywalters.ignis-setup
+          \`\`\`
+
+          The GNOME runtime supplies a matched WebKitGTK, so no host library
+          conflicts. The app uses \`flatpak-spawn --host\` to run the system
+          commands it needs (flatpak, systemctl, nmcli, pkexec, ujust).
+
+          | | |
+          |---|---|
+          | Commit | \`${SHORT_SHA}\` |
+          | Built | ${BUILT} |
+          EOF
+
+          gh release delete nightly --yes 2>/dev/null || true
+          git push origin :refs/tags/nightly 2>/dev/null || true
+
+          mv "$BUNDLE" ./ignis-setup.flatpak
+          gh release create nightly \
+            --prerelease \
+            --title "Nightly Flatpak (Bazzite)" \
+            --notes-file /tmp/notes.md \
+            ./ignis-setup.flatpak

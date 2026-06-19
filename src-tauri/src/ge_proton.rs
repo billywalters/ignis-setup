@@ -1,7 +1,6 @@
 // src-tauri/src/ge_proton.rs — GE-Proton installation and Steam default management
 use serde::{Deserialize, Serialize};
-use std::process::Command;
-use crate::types::{CommandResult, run_cmd};
+use crate::types::{CommandResult, run_cmd, host_command};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GeProtonStatus {
@@ -91,7 +90,7 @@ pub fn set_ge_proton_default(ge_version: String) -> CommandResult {
         return CommandResult::err("ge_version cannot be empty".into());
     }
 
-    let steam_running = Command::new("pgrep").args(["-x", "steam"]).output()
+    let steam_running = host_command("pgrep").args(["-x", "steam"]).output()
         .map(|o| o.status.success()).unwrap_or(false);
     if steam_running {
         return CommandResult::err("Steam is running. Close it before changing the default Proton.".into());
@@ -145,7 +144,7 @@ print('OK')
 #[tauri::command]
 pub fn is_steam_running() -> bool {
     for name in &["steam", "steam.sh", "steamwebhelper"] {
-        if Command::new("pgrep").args(["-x", name]).output()
+        if host_command("pgrep").args(["-x", name]).output()
             .map(|o| o.status.success()).unwrap_or(false) {
             return true;
         }
