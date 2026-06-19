@@ -20,11 +20,8 @@ assignees: ''
 
 ## System information
 
-**OS / distro:**
-<!-- e.g. Bazzite 41 / CachyOS 2025-01 / SteamOS 3.6 / Ubuntu 24.04 -->
-
-**OS family detected by the app:**
-<!-- Check the bottom of the sidebar in Ignis, or run: cat /etc/os-release | grep "^ID" -->
+**Bazzite version:**
+<!-- e.g. Bazzite 41 (Stable) — run: cat /etc/os-release | grep VERSION -->
 
 **GPU:**
 <!-- e.g. AMD RX 7900 XTX / NVIDIA RTX 4090 / Intel Arc A770 -->
@@ -33,7 +30,7 @@ assignees: ''
 <!-- Check the bottom of the sidebar -->
 
 **App version:**
-<!-- Check the About page in the app, or the AppImage filename -->
+<!-- Check the About page in the app, or: flatpak info io.github.billywalters.ignis-setup -->
 
 ## Which script or feature failed?
 

@@ -9,7 +9,6 @@ involved, what to work on, and how to submit changes.
 
 - **File a bug report** — use the [Bug report](.github/ISSUE_TEMPLATE/bug_report.md) template
 - **Suggest a feature or new app** — use the [Feature request](.github/ISSUE_TEMPLATE/feature_request.md) template
-- **Report OS compatibility** — use the [OS compatibility report](.github/ISSUE_TEMPLATE/os_compat_report.md) template
 - **Submit a pull request** — see the workflow below
 
 ---
@@ -18,10 +17,10 @@ involved, what to work on, and how to submit changes.
 
 ### Prerequisites
 
-- Linux (Bazzite, CachyOS, Ubuntu 22.04+, or SteamOS)
-- Node.js ≥ 18, npm ≥ 9
+- Bazzite (or another Fedora Atomic image) — the only supported target
+- Node.js ≥ 20, npm ≥ 9
 - Rust stable toolchain (`rustup install stable`)
-- WebKitGTK 4.1 dev libraries (see `build.sh` for the install command per distro)
+- WebKitGTK 4.1 dev libraries
 
 ### Running locally
 
@@ -32,11 +31,12 @@ npm install
 npm run tauri dev      # hot-reload dev mode
 ```
 
-### Building a release binary
+### Building the Flatpak
 
 ```bash
-bash build.sh          # handles all deps automatically
-# Output: src-tauri/target/release/bundle/appimage/*.AppImage
+flatpak-builder --user --install --force-clean build-dir \
+  flatpak/io.github.billywalters.ignis-setup.yml
+flatpak run io.github.billywalters.ignis-setup
 ```
 
 ---
@@ -68,8 +68,8 @@ scripts/                Standalone bash setup scripts
 ## Adding a new app to the catalogue
 
 1. Add an entry to `src/lib/apps.js` with:
-   - `installMethods` — one key per OS family (`fedora-atomic`, `arch`, `steamos`, `debian`, `any`)
-   - `osSupport` — level (`full`/`partial`/`unavailable`) + plain-English note per OS family
+   - `installMethods` — a `fedora-atomic` key and/or an `any` fallback (typically a user Flatpak)
+   - `osSupport` — level (`full`/`partial`/`unavailable`) + plain-English note for `fedora-atomic`
    - `gpuSupport` — level per GPU vendor if relevant
 2. Optionally add a script to `scripts/` — source `_common.sh` and use `pkg_install` / `dry_run_cmd`
 3. If the app needs a configuration panel, add a component to `src/components/`
@@ -82,8 +82,8 @@ scripts/                Standalone bash setup scripts
 - **Shell scripts must pass `bash -n` and `shellcheck --severity=error`** — the CI will catch failures.
 - **Rust code must pass `cargo clippy -- -D warnings`** — the CI will catch failures.
 - **Frontend must build cleanly with `npm run build`** — the CI will catch failures.
-- **No hardcoded paths, usernames, or machine-specific values.** The tool must work on any system.
-- **Test on at least one supported OS before opening a PR.**
+- **No hardcoded paths, usernames, or machine-specific values.**
+- **Test on Bazzite before opening a PR.**
 - Add a brief description of what changed and why to the PR body.
 
 ---

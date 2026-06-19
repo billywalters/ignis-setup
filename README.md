@@ -1,46 +1,53 @@
 # Ignis
 
-**A Linux gaming setup tool.** Detects your OS and GPU, then installs and
-configures the right apps for your system — no terminal required.
+**A gaming & media setup tool for [Bazzite](https://bazzite.gg/).** Detects your
+GPU and hardware, then installs and configures the right apps for your system —
+no terminal required.
 
-Built with [Tauri 2](https://tauri.app/) (Rust) + React. Works on Bazzite,
-CachyOS, SteamOS, and Ubuntu.
+Built with [Tauri 2](https://tauri.app/) (Rust) + React, and shipped as a
+**Flatpak** so it runs cleanly on Bazzite's immutable, atomic base.
 
-![Platform](https://img.shields.io/badge/platform-Linux-blue)
+![Platform](https://img.shields.io/badge/platform-Bazzite-8839ef)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange)
 [![CI](https://github.com/billywalters/ignis-setup/actions/workflows/ci.yml/badge.svg)](https://github.com/billywalters/ignis-setup/actions/workflows/ci.yml)
-[![Release](https://github.com/billywalters/ignis-setup/actions/workflows/release.yml/badge.svg)](https://github.com/billywalters/ignis-setup/actions/workflows/release.yml)
+[![Flatpak build](https://github.com/billywalters/ignis-setup/actions/workflows/flatpak.yml/badge.svg)](https://github.com/billywalters/ignis-setup/actions/workflows/flatpak.yml)
 
 ---
 
-## Download
+## Scope
 
-> **No build required.** Pre-built binaries are on the
-> [Releases page](https://github.com/billywalters/ignis-setup/releases).
+Ignis targets **Bazzite only** (and other Fedora Atomic / `rpm-ostree` images
+it's closely related to). Support for Arch, SteamOS, and Debian/Ubuntu was
+removed so the project focuses on one platform it can build, test, and ship
+reliably. If you're on another distro, this isn't the tool for you right now.
 
-| File | Use for |
-|------|---------|
-| `ignis-setup_*.AppImage` | **Recommended** — runs on any distro, no install needed |
-| `ignis-setup_*.rpm` | Bazzite / Fedora permanent install |
-| `ignis-setup_*.deb` | Ubuntu / Debian permanent install |
+---
+
+## Download & install
+
+> **No build required.** Grab the latest `.flatpak` bundle from the
+> [nightly release](https://github.com/billywalters/ignis-setup/releases/tag/nightly)
+> (rebuilt on every push to `main`).
 
 ```bash
-chmod +x ignis-setup_*.AppImage
-./ignis-setup_*.AppImage
+flatpak install --user ./ignis-setup.flatpak
+flatpak run io.github.billywalters.ignis-setup
 ```
 
-**Nightly builds** (latest `main`, expires 7 days) are available as workflow
-artifacts on the
-[Actions tab](https://github.com/billywalters/ignis-setup/actions/workflows/nightly.yml).
+The Flatpak runs against the GNOME runtime, which supplies a matched WebKitGTK —
+so there are no host-vs-bundled library conflicts on Bazzite's bleeding-edge
+Mesa stack. Because Ignis configures the host (Flatpak, systemctl, nmcli,
+rpm-ostree, ujust), it uses `flatpak-spawn --host` to run those commands
+outside the sandbox.
 
 ---
 
 ## What it does
 
-Ignis starts by scanning your machine — OS family, GPU vendor, CPU, RAM — and
-uses that to tailor every install decision. You get the right package manager,
-the right encoder, the right upscale values. Nothing hardcoded.
+Ignis scans your machine — GPU vendor, CPU, RAM — and uses that to tailor every
+install decision: the right encoder, the right upscale values. Nothing
+hardcoded.
 
 ### Gaming (the baseline)
 
@@ -65,7 +72,7 @@ the right encoder, the right upscale values. Nothing hardcoded.
 |-----|-------------|
 | **HandBrake** | Installs HandBrake and auto-imports five tuned SVT-AV1 10-bit presets (RF 16, full audio passthrough). |
 | **mpv** | HDR video player with dmabuf-wayland passthrough for 4K HDR. |
-| **Jellyfin Server** | Self-hosted media server via Podman Quadlet. Includes a Windows → Linux migration wizard. |
+| **Jellyfin Server** | Self-hosted media server via Podman Quadlet. Includes a Windows → Linux migration wizard and optional Cloudflare Tunnel for remote access. |
 
 ### Streaming & Chat
 
@@ -82,54 +89,18 @@ the right encoder, the right upscale values. Nothing hardcoded.
 | **LACT** | GPU overclocking, fan curves, power limits (AMD/NVIDIA/Intel). |
 | **CoolerControl** | System-wide fan controller for all CPU and case fans. |
 | **Flatseal** | GUI for managing Flatpak permissions. |
-| **MangoHud** | In-game FPS/GPU/temp overlay. Pre-installed on Bazzite and SteamOS. |
+| **MangoHud** | In-game FPS/GPU/temp overlay. Pre-installed on Bazzite. |
 
----
-
-## OS support
-
-Ignis detects your distro at startup and uses the right package manager automatically.
-
-| OS | Support | Package manager |
-|----|---------|-----------------|
-| **Bazzite** ⭐ | Full — all features | `rpm-ostree` |
-| **CachyOS / Arch** ⭐ | Full — all features | `pacman` + `paru`/`yay` |
-| **SteamOS** | Most features — Flatpak only | `flatpak-only` |
-| **Ubuntu / Debian** | Most features | `apt` |
-
-**SteamOS notes:** LACT and CoolerControl are unavailable (require persistent system daemons, wiped on OS update). Everything else works via Flatpak.
-
----
-
-## Per-app OS compatibility
-
-| App | Bazzite | CachyOS | SteamOS | Ubuntu |
-|-----|:-------:|:-------:|:-------:|:------:|
-| DLSS Updater | ✅ | ✅ | ✅ | ✅ |
-| OptiScaler Client | ✅ | ✅ | ✅ | ✅ |
-| GE-Proton | ✅ | ✅ | ✅ | ✅ |
-| Heroic Games Launcher | ✅ | ✅ | ✅ | ✅ |
-| Bottles | ✅ | ✅ | ✅ | ✅ |
-| Ludusavi | ✅ | ✅ | ✅ | ✅ |
-| EmuDeck | ✅ | ✅ | ✅ | ⚠️ |
-| HandBrake | ✅ | ✅ | ✅ | ✅ |
-| mpv | ✅ | ✅ | ⚠️ | ✅ |
-| Jellyfin Server | ✅ | ✅ | ⚠️ | ✅ |
-| Sunshine | ✅ | ✅ | ✅ | ✅ |
-| OBS Studio | ✅ | ✅ | ✅ | ✅ |
-| Discord | ✅ | ✅ | ✅ | ✅ |
-| LACT | ✅ | ✅ | ❌ | ⚠️ |
-| CoolerControl | ✅ | ✅ | ❌ | ⚠️ |
-| Flatseal | ✅ | ✅ | ✅ | ✅ |
-| MangoHud | ✅ | ✅ | ✅ | ✅ |
-
-**Key:** ✅ Full — ⚠️ Partial/caveats — ❌ Not available
+On Bazzite, each app installs via the most appropriate method — `ujust` recipes
+where Bazzite provides them, `rpm-ostree` for system packages that need it, and
+user Flatpaks for everything else.
 
 ---
 
 ## GPU compatibility
 
-Each app card shows a GPU badge (✓ / ⚠ / ✗) for your detected GPU vendor with a hover tooltip explaining any caveats. Notable cases:
+Each app card shows a GPU badge (✓ / ⚠ / ✗) for your detected GPU vendor with a
+hover tooltip explaining any caveats. Notable cases:
 
 - **DLSS Updater** — DLSS preset overrides require NVIDIA RTX 20+; DLL updates work on AMD/Intel
 - **OptiScaler** — FSR4 neural quality requires RDNA4 (RX 9000 series)
@@ -141,48 +112,30 @@ Each app card shows a GPU badge (✓ / ⚠ / ✗) for your detected GPU vendor w
 
 ## Building from source (optional)
 
-Most users should download the AppImage from Releases. Build from source only
-to modify the code or contribute.
+Most users should install the Flatpak from the nightly release. Build from
+source only to modify the code or contribute.
+
+**Dev mode (hot reload):**
 
 ```bash
 git clone https://github.com/billywalters/ignis-setup.git
 cd ignis-setup
-bash build.sh
+npm install
+npm run tauri dev
 ```
 
-`build.sh` detects your OS and installs all build dependencies
-(Rust, Node.js, WebKitGTK) via the correct package manager.
+This needs a Rust stable toolchain, Node.js, and the WebKitGTK 4.1 dev
+libraries on the host.
 
-> **Bazzite/Fedora Atomic:** WebKitGTK installs via `rpm-ostree` and requires a
-> reboot. Run `bash build.sh` again after rebooting.
-
-Output: `src-tauri/target/release/bundle/appimage/ignis-setup_*.AppImage`
-
----
-
-## Running scripts without the GUI
-
-All scripts in `scripts/` detect your OS automatically and use the right
-package manager. They can be run directly from a terminal:
+**Build the Flatpak locally:**
 
 ```bash
-# Run everything
-bash scripts/setup-all.sh
-
-# Dry-run — shows what would be installed, no changes made
-bash scripts/setup-all.sh --dry-run
-
-# Individual scripts
-bash scripts/setup-ge-proton.sh
-bash scripts/setup-obs.sh --resolution 1080p --gpu amd
-bash scripts/setup-emudeck.sh --configure --res 4k
-
-# Jellyfin Windows → Linux migration
-bash scripts/migrate-jellyfin.sh \
-  --mode clean \
-  --source /mnt/nas/backup/jellyfin-backup.zip \
-  --map "D:\Movies::/mnt/nas/media/Movies" \
-  --map "D:\TV::/mnt/nas/media/TV"
+flatpak install flathub org.gnome.Platform//47 org.gnome.Sdk//47 \
+  org.freedesktop.Sdk.Extension.rust-stable//24.08 \
+  org.freedesktop.Sdk.Extension.node20//24.08
+flatpak-builder --user --install --force-clean build-dir \
+  flatpak/io.github.billywalters.ignis-setup.yml
+flatpak run io.github.billywalters.ignis-setup
 ```
 
 ---
@@ -191,9 +144,8 @@ bash scripts/migrate-jellyfin.sh \
 
 ```
 ignis-setup/
-├── build.sh                     One-command multi-OS build script (--dry-run supported)
-├── handbrake-presets/           HandBrake SVT-AV1 preset JSON files (RF 16, copy audio)
-├── scripts/                     Standalone bash setup scripts (OS-aware via _common.sh)
+├── flatpak/                     Flatpak manifest, desktop entry, AppStream metainfo
+├── scripts/                     Standalone bash setup scripts
 ├── src/                         React frontend
 │   ├── App.jsx                  Main orchestrator
 │   ├── components/              UI components (panels, welcome screen, shared UI)
@@ -202,7 +154,7 @@ ignis-setup/
 │   └── lib/                     Utilities (Tauri IPC, apps catalogue, network validation)
 └── src-tauri/                   Rust/Tauri backend
     └── src/                     Modular: system, installs, network, jellyfin,
-                                 ge_proton, install_log, types
+                                 cloudflare, ge_proton, install_log, types
 ```
 
 ---
@@ -211,25 +163,16 @@ ignis-setup/
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, how to add apps, and PR guidelines.
 
-### Release workflow
+### Workflows
 
 All builds are **free and unlimited** on public repositories.
 
 | Workflow | Trigger | Output |
 |----------|---------|--------|
 | `ci.yml` | Every PR + push to `main` | Shellcheck, Vite build, cargo check + Clippy |
-| `nightly.yml` | Every merge to `main` | AppImage artifact (7-day expiry) |
-| `release.yml` | Push a `v*` tag | AppImage + .deb + .rpm → GitHub Release draft |
+| `flatpak.yml` | Every push to `main` | Rolling nightly `.flatpak` bundle on the [nightly release](https://github.com/billywalters/ignis-setup/releases/tag/nightly) |
 | `dependency-review.yml` | Every PR | CVE scan for new dependencies |
-
-**To cut a release:**
-```bash
-npm pkg set version="1.0.0"
-sed -i 's/^version = ".*"/version = "1.0.0"/' src-tauri/Cargo.toml
-git add -A && git commit -m "Release v1.0.0"
-git tag v1.0.0 && git push && git push --tags
-# Review draft at: https://github.com/billywalters/ignis-setup/releases
-```
+| `dep-update.yml` | Weekly (Sunday) | n-1 dependency update PR + supply-chain audit |
 
 ---
 
