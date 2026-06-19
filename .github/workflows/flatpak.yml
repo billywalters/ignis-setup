@@ -51,16 +51,21 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Download Flatpak bundle
+        # The flatpak-builder action names the artifact "<bundle>-<arch>.flatpak"
+        # (e.g. ignis-setup-x86_64.flatpak), not "ignis-setup.flatpak". Omit the
+        # name to download all artifacts and let the find below locate the bundle,
+        # so this stays correct regardless of arch suffix.
         uses: actions/download-artifact@v7
         with:
-          name: ignis-setup.flatpak
           path: ./bundle
 
       - name: Publish rolling nightly release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BUNDLE=$(find ./bundle -name '*.flatpak' | head -1)
+          # -type f: the artifact subdir is itself named "*-x86_64.flatpak",
+          # so restrict the match to the actual bundle file inside it.
+          BUNDLE=$(find ./bundle -type f -name '*.flatpak' | head -1)
           SHORT_SHA="${GITHUB_SHA:0:7}"
           BUILT=$(date -u '+%Y-%m-%d %H:%M UTC')
 
