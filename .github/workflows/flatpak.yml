@@ -55,7 +55,7 @@ jobs:
         # (e.g. ignis-setup-x86_64.flatpak), not "ignis-setup.flatpak". Omit the
         # name to download all artifacts and let the find below locate the bundle,
         # so this stays correct regardless of arch suffix.
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: ./bundle
 
